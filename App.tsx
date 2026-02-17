@@ -24,8 +24,24 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Check if API KEY exists in process.env
-  const hasApiKey = !!process.env.API_KEY;
+  // Use state to track key detection
+  const [apiKeyStatus, setApiKeyStatus] = useState<'DETECTED' | 'MISSING_IN_RUNTIME'>('MISSING_IN_RUNTIME');
+
+  useEffect(() => {
+    // Check if process.env.API_KEY is available in this runtime
+    try {
+      // @ts-ignore - process might be shimmed by the platform
+      if (process.env.API_KEY) {
+        setApiKeyStatus('DETECTED');
+      } else {
+        setApiKeyStatus('MISSING_IN_RUNTIME');
+      }
+    } catch (e) {
+      setApiKeyStatus('MISSING_IN_RUNTIME');
+    }
+  }, []);
+
+  const hasApiKey = apiKeyStatus === 'DETECTED';
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -69,6 +85,19 @@ const App: React.FC = () => {
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth pb-48 pt-4"
       >
+        {!hasApiKey && (
+          <div className="bg-red-900/40 border-2 border-red-500 p-4 rounded-xl mb-4 text-sm text-white shadow-lg">
+            <p className="font-bold mb-2 flex items-center gap-2">
+              <span className="text-xl">⚠️</span> 喂毒撚！你粒 API Key 仲未生效！
+            </p>
+            <p className="text-xs opacity-90 leading-relaxed">
+              Vercel 係唔會自動幫你將 Environment Variables 塞入去啲靜態檔案架！<br/>
+              如果喺 Vercel 用，你可能需要一個 build step (例如 Vite) 嚟將粒 Key 注入去。<br/>
+              而家讀唔到 <code className="bg-black/50 px-1 rounded">process.env.API_KEY</code>，梗係傾唔到計啦，垃圾！
+            </p>
+          </div>
+        )}
+
         {messages.map((msg, idx) => (
           <div 
             key={idx} 
@@ -110,7 +139,6 @@ const App: React.FC = () => {
 
       {/* Input Overlay */}
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black pt-12 px-4 pb-6 z-20">
-        {/* Quick Actions */}
         <div className="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar scroll-smooth">
           {QUICK_REPLIES.map((reply) => (
             <button
@@ -123,7 +151,6 @@ const App: React.FC = () => {
           ))}
         </div>
 
-        {/* Input Area */}
         <div className="flex flex-col gap-4">
           <div className="relative group">
             <input 
@@ -136,7 +163,7 @@ const App: React.FC = () => {
             />
             <button 
               onClick={() => handleSend()}
-              disabled={isLoading || !input.trim()}
+              disabled={isLoading || !input.trim() || !hasApiKey}
               className="absolute right-3 top-3 bottom-3 bg-[#00d1c1] hover:bg-white disabled:bg-zinc-800 disabled:text-zinc-600 text-black px-5 rounded-xl font-black transition-all uppercase tracking-tighter"
             >
               發送
@@ -149,8 +176,8 @@ const App: React.FC = () => {
                 <span className="text-[10px] text-zinc-700 font-black uppercase tracking-widest leading-none mb-1">
                   HKMIXGIRL ANTI-SIMP SYSTEM
                 </span>
-                <span className={`text-[8px] font-mono tracking-tighter ${hasApiKey ? 'text-zinc-500' : 'text-red-600 animate-pulse'}`}>
-                  ENV_API_KEY: {hasApiKey ? 'DETECTED' : 'MISSING_IN_RUNTIME'}
+                <span className={`text-[8px] font-mono tracking-tighter ${hasApiKey ? 'text-[#00d1c1]' : 'text-red-600 animate-pulse'}`}>
+                  ENV_API_KEY: {apiKeyStatus}
                 </span>
             </div>
           </div>
