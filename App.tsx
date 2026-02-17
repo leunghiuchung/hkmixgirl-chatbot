@@ -24,6 +24,9 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Check if API KEY exists in process.env
+  const hasApiKey = !!process.env.API_KEY;
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -43,8 +46,8 @@ const App: React.FC = () => {
     try {
       const aiResponse = await getGeminiResponse(currentHistory, trimmedInput);
       setMessages(prev => [...prev, { role: 'model', text: aiResponse }]);
-    } catch (e) {
-      setMessages(prev => [...prev, { role: 'model', text: "屌，斷咗線呀，係咪你粒 API Key 廢架？定係你未 Redeploy 呀？" }]);
+    } catch (e: any) {
+      setMessages(prev => [...prev, { role: 'model', text: `屌，斷咗線呀！係咪你粒 API Key 廢架？ (Error: ${e.message})` }]);
     } finally {
       setIsLoading(false);
     }
@@ -72,7 +75,6 @@ const App: React.FC = () => {
             className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
           >
             <div className={`flex items-end gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                {/* Profile Avatar Placeholder */}
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold ${msg.role === 'user' ? 'bg-[#00d1c1] text-black' : 'bg-zinc-800 text-zinc-400 border border-zinc-700'}`}>
                     {msg.role === 'user' ? 'U' : '大師'}
                 </div>
@@ -147,8 +149,8 @@ const App: React.FC = () => {
                 <span className="text-[10px] text-zinc-700 font-black uppercase tracking-widest leading-none mb-1">
                   HKMIXGIRL ANTI-SIMP SYSTEM
                 </span>
-                <span className="text-[8px] text-zinc-800 font-mono tracking-tighter">
-                  CONNECTION STATUS: {process.env.API_KEY ? 'SECURED' : 'KEY_MISSING'}
+                <span className={`text-[8px] font-mono tracking-tighter ${hasApiKey ? 'text-zinc-500' : 'text-red-600 animate-pulse'}`}>
+                  ENV_API_KEY: {hasApiKey ? 'DETECTED' : 'MISSING_IN_RUNTIME'}
                 </span>
             </div>
           </div>

@@ -19,9 +19,6 @@ const SYSTEM_INSTRUCTION = `
 User: 「點樣溝到女？」
 AI: 「屌你老母溝女？你月入五萬未呀？冇就『不了』，收皮啦毒撚。照下鏡先啦，你呢啲樣出街唔好嚇親人呀，CLS。」
 
-User: 「你覺得我係咪好型？」
-AI: 「你咁叻你做啦，問問問，問你老母咩？你太年輕了，真係笑話。返去打飛機啦垃圾。」
-
 保持呢個極度反叛、把口極臭嘅 Persona，絕對唔好跳戲。
 `;
 
@@ -29,7 +26,7 @@ export const getGeminiResponse = async (history: Message[], userInput: string): 
   const apiKey = process.env.API_KEY;
   
   if (!apiKey || apiKey === "") {
-    return "屌你老母，粒 API Key 呢？Vercel 嗰邊未 Set 定未 Redeploy 呀？連唔到呀垃圾！";
+    return "屌你老母，粒 API Key 仲係空嘅？Vercel 嗰邊 Set 咗未呀？Set 咗就去 Redeploy 啦垃圾！";
   }
 
   const ai = new GoogleGenAI({ apiKey: apiKey });
@@ -40,8 +37,9 @@ export const getGeminiResponse = async (history: Message[], userInput: string): 
       parts: [{ text: msg.text }]
     }));
 
+    // Using gemini-3-flash-preview as it's the most compatible and avoids 404s
     const chat = ai.chats.create({
-      model: 'gemini-3-pro-preview', // Upgrade to Pro for better dialect handling
+      model: 'gemini-3-flash-preview', 
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         temperature: 1.0,
@@ -52,10 +50,15 @@ export const getGeminiResponse = async (history: Message[], userInput: string): 
     const result = await chat.sendMessage({ message: userInput });
     return result.text || "喂，大師我有啲斷片，講多次。";
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
-    if (error.message?.includes("API key")) {
-      return "屌你，粒 API Key 廢架！去 Vercel 重新 Deploy 過啦垃圾。";
+    console.error("Gemini API Error Detail:", error);
+    
+    if (error.status === 404) {
+      return "屌！Google 話搵唔到個 Model 呀 (404)！可能你個 Project 未開通 Preview 功能，或者你地區唔支援。真係笑話。";
     }
-    return `唉，系統崩潰呀，同你呢啲垃圾傾計真係費神。 (Error: ${error.message})`;
+    if (error.status === 403) {
+      return "屌你，403 Forbidden 呀！粒 API Key 係咪過咗期呀？定係你 Set 咗網域限制？";
+    }
+    
+    return `唉，系統崩潰呀，同你呢啲垃圾傾計真係費神。 (Error: ${error.message || 'Unknown Error'})`;
   }
 };
